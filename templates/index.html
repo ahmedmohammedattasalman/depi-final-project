@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon RecSys | Command Center</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#070709',
+                        primary: '#0D0D12',
+                        accent: '#E65F2B', // Cyber Amber
+                        accentGlow: 'rgba(230, 95, 43, 0.15)',
+                        glowBlue: '#4CC9F0',
+                        glowGreen: '#06D6A0',
+                        dark: '#121218',
+                        surface: 'rgba(20, 20, 27, 0.7)',
+                        borderGlow: 'rgba(255, 255, 255, 0.06)'
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        display: ['"Outfit"', 'sans-serif'],
+                        drama: ['"Cormorant Garamond"', 'serif'],
+                        mono: ['"IBM Plex Mono"', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400;1,600&family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons via CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #070709;
+            color: #FAF8F5;
+        }
+        /* Custom noise overlay */
+        .noise-bg {
+            pointer-events: none;
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            width: 100%;
+            height: 100%;
+            opacity: 0.015;
+            mix-blend-mode: overlay;
+        }
+        /* Cyberpunk glass cards */
+        .cyber-card {
+            background: rgba(18, 18, 26, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 2rem;
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .cyber-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(230, 95, 43, 0.35);
+            box-shadow: 0 10px 40px -15px rgba(230, 95, 43, 0.2);
+        }
+        .glow-border-blue:hover {
+            border-color: rgba(76, 201, 240, 0.35);
+            box-shadow: 0 10px 40px -15px rgba(76, 201, 240, 0.2);
+        }
+        .glow-border-green:hover {
+            border-color: rgba(6, 214, 160, 0.35);
+            box-shadow: 0 10px 40px -15px rgba(6, 214, 160, 0.2);
+        }
+        /* Tab transitions */
+        .tab-content {
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+            display: none;
+        }
+        .tab-content.active {
+            opacity: 1;
+            transform: translateY(0);
+            display: block;
+        }
+        /* Table scrollbar */
+        .scrollbar-hide::-webkit-scrollbar {
+            height: 4px;
+            width: 4px;
+        }
+        .scrollbar-hide::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .scrollbar-hide::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="h-full antialiased overflow-hidden font-sans">
+    
+    <!-- SVG Noise Texture Overlay -->
+    <svg class="noise-bg" xmlns="http://www.w3.org/2000/svg">
+        <filter id="noiseFilter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/>
+        </filter>
+        <rect width="100%" height="100%" filter="url(#noiseFilter)"/>
+    </svg>
+
+    <div class="flex h-screen overflow-hidden p-6 gap-6">
+        
+        <!-- SIDEBAR -->
+        <aside class="w-80 flex flex-col cyber-card p-6 flex-shrink-0 relative overflow-hidden bg-primary/80">
+            <!-- Top Identity Block -->
+            <div class="mb-10">
+                <div class="flex items-center space-x-3 mb-2">
+                    <div class="w-9 h-9 rounded-xl bg-accent flex items-center justify-center text-white shadow-[0_0_15px_rgba(230,95,43,0.4)]">
+                        <i data-lucide="terminal" class="w-5 h-5"></i>
+                    </div>
+                    <span class="font-display font-bold text-xl text-white tracking-tight">Amazon RecSys</span>
+                </div>
+                <div class="font-drama text-lg text-accent leading-none ml-12">Neural Orchestration</div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex-1 space-y-3">
+                <button onclick="switchTab('recommendations-tab', this)" class="nav-link w-full flex items-center space-x-3 px-4 py-3.5 rounded-2xl bg-accent text-white font-semibold text-sm transition-all duration-300 shadow-[0_4px_15px_rgba(230,95,43,0.15)]">
+                    <i data-lucide="zap" class="w-4.5 h-4.5"></i>
+                    <span>Recommendations</span>
+                </button>
+                <button onclick="switchTab('metrics-tab', this)" class="nav-link w-full flex items-center space-x-3 px-4 py-3.5 rounded-2xl hover:bg-white/5 text-white/60 hover:text-white font-medium text-sm transition-all duration-300">
+                    <i data-lucide="gauge" class="w-4.5 h-4.5"></i>
+                    <span>Model Performance</span>
+                </button>
+                <button onclick="switchTab('config-tab', this)" class="nav-link w-full flex items-center space-x-3 px-4 py-3.5 rounded-2xl hover:bg-white/5 text-white/60 hover:text-white font-medium text-sm transition-all duration-300">
+                    <i data-lucide="settings-2" class="w-4.5 h-4.5"></i>
+                    <span>Pipeline Config</span>
+                </button>
+            </nav>
+
+            <!-- Bottom Status Panel -->
+            <div class="mt-auto border-t border-white/5 pt-6">
+                <div class="flex items-center justify-between bg-black/40 rounded-2xl p-4 border border-white/5">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.8)]"></div>
+                        <span class="font-mono text-xs text-white/80 font-medium">Core Active</span>
+                    </div>
+                    <span class="font-mono text-[10px] text-accent font-bold bg-accent/10 px-2.5 py-0.5 rounded-full border border-accent/20">V5-HYBRID</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN WINDOW -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            
+            <!-- HEADER -->
+            <header class="flex items-center justify-between pb-6 border-b border-white/5 px-2">
+                <div>
+                    <h1 id="header-title" class="font-display font-bold text-3xl text-white tracking-tight leading-tight">User Recommendations</h1>
+                    <p id="header-desc" class="text-sm text-white/40 font-sans mt-1">Generate and evaluate deep-graph personalized item suggestions.</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <span class="text-xs text-white/30 font-mono block">NODE ADDRESS</span>
+                        <span class="text-sm font-mono font-bold text-accent">http://127.0.0.1:8050</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- TAB CONTAINER -->
+            <div class="flex-1 overflow-y-auto pt-6 px-2 pr-4 space-y-6 scrollbar-hide">
+
+                <!-- TAB 1: RECOMMENDATIONS -->
+                <div id="recommendations-tab" class="tab-content active space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <!-- Control Box -->
+                        <div class="lg:col-span-1 cyber-card p-6 flex flex-col justify-between h-[440px] glow-border-blue bg-surface">
+                            <div>
+                                <div class="flex items-center space-x-2 mb-4">
+                                    <i data-lucide="sliders-horizontal" class="w-4 h-4 text-glowBlue"></i>
+                                    <h3 class="font-display font-semibold text-lg text-white">Target Selection</h3>
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block font-mono text-[9px] text-white/30 uppercase tracking-widest mb-1.5">SELECT SAVED USER</label>
+                                        <select id="user-selector" onchange="syncSelectorToInput(this.value)" class="w-full bg-black/60 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-accent text-white/80 transition-colors duration-300">
+                                            <option value="">Loading users...</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between items-center mb-1.5">
+                                            <label class="block font-mono text-[9px] text-white/30 uppercase tracking-widest">OR CUSTOM USER ID</label>
+                                            <span class="font-mono text-[9px] text-glowBlue">Free Input</span>
+                                        </div>
+                                        <div class="relative">
+                                            <input type="text" id="custom-user-input" placeholder="Enter custom User ID..." class="w-full bg-black/60 border border-white/10 rounded-2xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-accent text-white font-mono transition-colors duration-300" />
+                                            <i data-lucide="user-search" class="w-4 h-4 absolute left-3.5 top-3.5 text-white/30"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block font-mono text-[9px] text-white/30 uppercase tracking-widest mb-1.5">RECOMMENDATION SIZE (K)</label>
+                                        <div class="flex items-center space-x-4">
+                                            <input type="range" id="top-k-slider" min="5" max="10" value="10" oninput="document.getElementById('top-k-val').innerText = this.value" class="w-full accent-accent bg-white/10 h-1 rounded-full cursor-pointer">
+                                            <span id="top-k-val" class="font-mono text-sm font-bold text-accent min-w-[20px]">10</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button onclick="loadUserRecommendation()" class="magnetic-btn w-full bg-accent text-white py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center space-x-2 shadow-[0_4px_25px_rgba(230,95,43,0.35)] border border-accent/20">
+                                <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+                                <span>Execute Pipeline</span>
+                            </button>
+                        </div>
+
+                        <!-- User Profile Card -->
+                        <div class="lg:col-span-2 cyber-card p-6 flex flex-col justify-between h-[440px] relative overflow-hidden bg-gradient-to-br from-primary/90 to-primary border-white/10 glow-border-green">
+                            <div class="absolute right-0 bottom-0 translate-x-12 translate-y-12 opacity-5 pointer-events-none">
+                                <i data-lucide="activity" class="w-96 h-96 text-white"></i>
+                            </div>
+                            
+                            <div>
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <span class="font-mono text-[9px] text-glowGreen font-bold uppercase tracking-wider bg-glowGreen/10 border border-glowGreen/20 px-3 py-1 rounded-full">User Vector Profile</span>
+                                        <h2 id="profile-user-id" class="font-display font-bold text-3xl mt-4 tracking-tight text-white">ASIN_USER</h2>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="font-mono text-[9px] text-white/30 block uppercase tracking-wider">Index ID</span>
+                                        <span id="profile-encoded-id" class="font-mono text-xl font-bold text-accentGlow bg-accent/20 border border-accent/30 px-3 py-0.5 rounded-xl text-accent block mt-1">-</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+                                    <div class="bg-white/[0.02] rounded-2xl p-4 border border-white/5">
+                                        <span class="font-mono text-[9px] text-white/40 block uppercase tracking-wider">Interactions</span>
+                                        <span id="profile-activity" class="font-mono text-3xl font-bold text-white mt-1 block">-</span>
+                                    </div>
+                                    <div class="bg-white/[0.02] rounded-2xl p-4 border border-white/5">
+                                        <span class="font-mono text-[9px] text-white/40 block uppercase tracking-wider">Avg Rating</span>
+                                        <span id="profile-rating" class="font-mono text-3xl font-bold text-glowBlue mt-1 block">-</span>
+                                    </div>
+                                    <div class="bg-white/[0.02] rounded-2xl p-4 border border-white/5">
+                                        <span class="font-mono text-[9px] text-white/40 block uppercase tracking-wider">Rating Std</span>
+                                        <span id="profile-rating-std" class="font-mono text-3xl font-bold text-glowGreen mt-1 block">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="border-t border-white/5 pt-4 flex justify-between items-center text-xs text-white/40">
+                                <span class="flex items-center space-x-1.5">
+                                    <i data-lucide="shield-check" class="w-4 h-4 text-glowGreen"></i>
+                                    <span>Approximate history reconstructed from ALS latent vector weights</span>
+                                </span>
+                                <span class="font-mono text-[10px] text-glowGreen uppercase font-bold tracking-wider">Pipeline-Valid</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Recommendation Results -->
+                    <div class="cyber-card p-6 bg-surface">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center space-x-2">
+                                <i data-lucide="cpu" class="w-5 h-5 text-accent"></i>
+                                <div>
+                                    <h3 class="font-display font-semibold text-xl text-white">Hybrid Recommendation Rank</h3>
+                                    <p class="text-xs text-white/40">Final output generated by combining collaborative filters, sequential modeling, graph representations, and popularity debiasing.</p>
+                                </div>
+                            </div>
+                            <span class="text-xs font-mono text-accent bg-accent/10 border border-accent/20 px-3 py-1 rounded-full" id="result-count">Items: 0</span>
+                        </div>
+
+                        <div class="overflow-x-auto scrollbar-hide">
+                            <table class="w-full text-left border-collapse min-w-[900px]">
+                                <thead>
+                                    <tr class="border-b border-white/5 font-mono text-[10px] text-white/30 uppercase tracking-widest">
+                                        <th class="py-3 px-4">Rank</th>
+                                        <th class="py-3 px-4">Amazon ASIN</th>
+                                        <th class="py-3 px-4 text-accent">Hybrid Score</th>
+                                        <th class="py-3 px-4">Pop Weight</th>
+                                        <th class="py-3 px-4 text-glowBlue">Product Category</th>
+                                        <th class="py-3 px-4">Catalog Popularity</th>
+                                        <th class="py-3 px-4 text-glowGreen">Amazon Rating</th>
+                                        <th class="py-3 px-4">Cold Start</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recommendations-tbody" class="text-sm font-medium text-white/80">
+                                    <!-- Rendered dynamically -->
+                                    <tr>
+                                        <td colspan="8" class="text-center py-16 text-white/35 font-mono text-xs">
+                                            Select or type a User ID and execute the pipeline to load recommendations.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: METRICS -->
+                <div id="metrics-tab" class="tab-content space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="metrics-summary-grid">
+                        <!-- Filled dynamically -->
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Curve Charts -->
+                        <div class="lg:col-span-2 cyber-card p-6 flex flex-col h-[400px] bg-surface">
+                            <div class="flex items-center space-x-2 mb-4">
+                                <i data-lucide="activity" class="w-5 h-5 text-glowBlue"></i>
+                                <h3 class="font-display font-semibold text-lg text-white">Precision & Recall Curves</h3>
+                            </div>
+                            <div class="flex-1 relative flex items-end justify-between px-8 pb-8 pt-4" id="chart-container">
+                                <!-- Dynamic SVG lines & axes drawn here -->
+                                <svg class="absolute inset-0 w-full h-full p-8" id="metrics-svg-chart" viewBox="0 0 500 200" preserveAspectRatio="none">
+                                    <!-- Background grid lines -->
+                                    <line x1="0" y1="0" x2="500" y2="0" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+                                    <line x1="0" y1="50" x2="500" y2="50" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+                                    <line x1="0" y1="100" x2="500" y2="100" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+                                    <line x1="0" y1="150" x2="500" y2="150" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+                                    <line x1="0" y1="200" x2="500" y2="200" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+                                    
+                                    <!-- Recall curve (Amber) -->
+                                    <path id="recall-line" d="" fill="none" stroke="#E65F2B" stroke-width="3" stroke-linecap="round"/>
+                                    
+                                    <!-- NDCG curve (Blue) -->
+                                    <path id="ndcg-line" d="" fill="none" stroke="#4CC9F0" stroke-width="3" stroke-linecap="round"/>
+                                </svg>
+                                <div class="absolute bottom-1 left-8 right-8 flex justify-between font-mono text-[9px] text-white/30 uppercase tracking-widest">
+                                    <span>K = 5</span>
+                                    <span>K = 10</span>
+                                    <span>K = 20</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-6 justify-center text-xs font-mono">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-2.5 h-2.5 bg-glowBlue rounded-full shadow-[0_0_8px_rgba(76,201,240,0.6)]"></div>
+                                    <span class="text-white/60">NDCG Metric</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-2.5 h-2.5 bg-accent rounded-full shadow-[0_0_8px_rgba(230,95,43,0.6)]"></div>
+                                    <span class="text-white/60">Recall (Scaled)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- System Quality Stats -->
+                        <div class="lg:col-span-1 cyber-card p-6 flex flex-col justify-between h-[400px] bg-surface">
+                            <div>
+                                <div class="flex items-center space-x-2 mb-6">
+                                    <i data-lucide="shield-alert" class="w-5 h-5 text-glowGreen"></i>
+                                    <h3 class="font-display font-semibold text-lg text-white">System Coverage</h3>
+                                </div>
+                                
+                                <div class="space-y-6">
+                                    <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                                        <div>
+                                            <span class="font-semibold text-sm text-white block">Catalog Coverage</span>
+                                            <span class="text-[10px] text-white/40 block">Ratio of unique items recommended</span>
+                                        </div>
+                                        <span id="coverage-val" class="font-mono text-xl font-bold text-white">-</span>
+                                    </div>
+                                    <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                                        <div>
+                                            <span class="font-semibold text-sm text-white block">Novelty Index</span>
+                                            <span class="text-[10px] text-white/40 block">Likelihood to prompt long-tail selections</span>
+                                        </div>
+                                        <span id="novelty-val" class="font-mono text-xl font-bold text-accent">-</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <span class="font-semibold text-sm text-white block">Catalog Diversity</span>
+                                            <span class="text-[10px] text-white/40 block">Dispersion similarity entropy</span>
+                                        </div>
+                                        <span id="diversity-val" class="font-mono text-xl font-bold text-glowBlue">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="font-mono text-[9px] text-white/30 text-center uppercase tracking-wide">
+                                Computed on offline validation split = 0.20
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: CONFIG -->
+                <div id="config-tab" class="tab-content">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="config-cards-container">
+                        <!-- Filled dynamically -->
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Script Logic -->
+    <script>
+        // Synchronize selector choice to input field
+        function syncSelectorToInput(val) {
+            const input = document.getElementById('custom-user-input');
+            input.value = val;
+        }
+
+        // Active Tab Selector
+        function switchTab(tabId, el) {
+            // Titles & Subtitles mapping
+            const titleMap = {
+                'recommendations-tab': { title: 'User Recommendations', desc: 'Compute and review deep personalized item recommendations.' },
+                'metrics-tab': { title: 'Model Performance', desc: 'Evaluate training iterations, validation metrics, and dataset coverage.' },
+                'config-tab': { title: 'Pipeline Parameters', desc: 'Detailed configuration parameters of the 9-layer system.' }
+            };
+
+            // Switch headers
+            document.getElementById('header-title').innerText = titleMap[tabId].title;
+            document.getElementById('header-desc').innerText = titleMap[tabId].desc;
+
+            // Deactivate all nav links
+            document.querySelectorAll('.nav-link').forEach(btn => {
+                btn.className = "nav-link w-full flex items-center space-x-3 px-4 py-3.5 rounded-2xl hover:bg-white/5 text-white/60 hover:text-white font-medium text-sm transition-all duration-300";
+            });
+
+            // Activate current nav link
+            el.className = "nav-link w-full flex items-center space-x-3 px-4 py-3.5 rounded-2xl bg-accent text-white font-semibold text-sm transition-all duration-300 shadow-[0_4px_15px_rgba(230,95,43,0.15)]";
+
+            // Switch tab divs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Load users on startup
+        async function loadUsers() {
+            try {
+                const res = await fetch('/api/users');
+                const data = await res.json();
+                
+                const selectEl = document.getElementById('user-selector');
+                selectEl.innerHTML = '<option value="">-- Choose Mapped Account --</option>';
+                
+                data.users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.innerText = `${user.id} (${user.group})`;
+                    selectEl.appendChild(option);
+                });
+                
+                // Initialize default recommend run with first user
+                if(data.users.length > 0) {
+                    const defaultUser = data.users[0].id;
+                    selectEl.value = defaultUser;
+                    syncSelectorToInput(defaultUser);
+                    loadUserRecommendation();
+                }
+            } catch(e) {
+                console.error("Error loading users", e);
+            }
+        }
+
+        // Fetch user recommendations
+        async function loadUserRecommendation() {
+            const userId = document.getElementById('custom-user-input').value.trim();
+            const topK = document.getElementById('top-k-slider').value;
+            
+            if(!userId) {
+                alert("Please select a user or enter a custom User ID!");
+                return;
+            }
+
+            // Loading state for table
+            const tbody = document.getElementById('recommendations-tbody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center py-16 text-white/50">
+                        <div class="flex items-center justify-center space-x-3 font-mono text-sm">
+                            <i data-lucide="loader" class="w-5 h-5 animate-spin text-accent"></i>
+                            <span>Querying Deep ML Matrix Graph...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            lucide.createIcons();
+
+            try {
+                const res = await fetch('/api/recommend', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, top_k: parseInt(topK) })
+                });
+                
+                const data = await res.json();
+                if(data.error) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-16 text-red-500 font-mono text-xs">Error: ${data.error}</td></tr>`;
+                    return;
+                }
+
+                // Fill User Profile Card
+                const prof = data.user_profile;
+                document.getElementById('profile-user-id').innerText = prof.id;
+                document.getElementById('profile-encoded-id').innerText = prof.encoded_id;
+                document.getElementById('profile-activity').innerText = prof.activity;
+                document.getElementById('profile-rating').innerText = prof.avg_rating.toFixed(2);
+                document.getElementById('profile-rating-std').innerText = prof.rating_std.toFixed(2);
+
+                // Fill Recommendations Table
+                tbody.innerHTML = '';
+                document.getElementById('result-count').innerText = `Items: ${data.recommendations.length}`;
+                
+                data.recommendations.forEach((rec, idx) => {
+                    const row = document.createElement('tr');
+                    row.className = "border-b border-white/5 hover:bg-white/[0.02] transition-colors";
+                    
+                    row.innerHTML = `
+                        <td class="py-4.5 px-4 font-mono text-xs text-white/30">#${idx + 1}</td>
+                        <td class="py-4.5 px-4 font-mono font-bold text-accent tracking-wider">
+                            <a href="https://www.amazon.com/dp/${rec.asin}" target="_blank" class="hover:underline flex items-center space-x-1.5 text-accent hover:text-white transition-colors duration-300">
+                                <span>${rec.asin}</span>
+                                <i data-lucide="external-link" class="w-3.5 h-3.5 opacity-50"></i>
+                            </a>
+                        </td>
+                        <td class="py-4.5 px-4 font-mono font-bold text-white">${rec.score.toFixed(4)}</td>
+                        <td class="py-4.5 px-4 font-mono text-white/60">${rec.pop_score.toFixed(4)}</td>
+                        <td class="py-4.5 px-4 font-mono text-glowBlue font-semibold">${rec.category}</td>
+                        <td class="py-4.5 px-4 font-mono text-white/50">${rec.popularity_score.toFixed(4)}</td>
+                        <td class="py-4.5 px-4">
+                            <div class="flex items-center space-x-1.5">
+                                <span class="font-bold font-mono text-sm text-glowGreen">${rec.avg_rating.toFixed(1)}</span>
+                                <span class="text-[10px] text-white/30 font-mono">(${rec.review_count} revs)</span>
+                            </div>
+                        </td>
+                        <td class="py-4.5 px-4">
+                            ${rec.cold_start ? 
+                                `<span class="bg-amber-500/10 text-amber-500 font-mono text-[9px] font-bold px-2.5 py-0.5 rounded-full border border-amber-500/20 uppercase tracking-wide">Yes</span>` : 
+                                `<span class="bg-glowGreen/10 text-glowGreen font-mono text-[9px] font-bold px-2.5 py-0.5 rounded-full border border-glowGreen/20 uppercase tracking-wide">No</span>`
+                            }
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+                lucide.createIcons();
+            } catch(e) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-16 text-red-500 font-mono text-xs">Failed to communicate with Flask recsys node.</td></tr>`;
+            }
+        }
+
+        // Fetch and load metrics
+        async function loadMetrics() {
+            try {
+                const res = await fetch('/api/metrics');
+                const data = await res.json();
+                
+                // Expose quality stats
+                document.getElementById('coverage-val').innerText = `${(data.coverage * 100).toFixed(1)}%`;
+                document.getElementById('novelty-val').innerText = data.novelty.toFixed(2);
+                document.getElementById('diversity-val').innerText = data.diversity.toFixed(2);
+
+                // Build metric dashboard grid cards
+                const grid = document.getElementById('metrics-summary-grid');
+                grid.innerHTML = '';
+
+                const showMetrics = [
+                    { label: 'NDCG @ 10', val: data['ndcg@10'], icon: 'award', color: 'text-glowBlue', bg: 'glow-border-blue' },
+                    { label: 'Hit Rate @ 10', val: data['hitrate@10'], icon: 'activity', color: 'text-accent', bg: 'cyber-card' },
+                    { label: 'Recall @ 10', val: data['recall@10'], icon: 'target', color: 'text-glowGreen', bg: 'glow-border-green' },
+                    { label: 'Precision @ 10', val: data['precision@10'], icon: 'compass', color: 'text-white', bg: 'cyber-card' }
+                ];
+
+                showMetrics.forEach(m => {
+                    const card = document.createElement('div');
+                    card.className = `${m.bg} p-6 flex flex-col justify-between h-36 bg-surface`;
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <span class="font-mono text-[10px] text-white/40 uppercase tracking-widest">${m.label}</span>
+                            <i data-lucide="${m.icon}" class="w-5 h-5 ${m.color}"></i>
+                        </div>
+                        <h2 class="font-display font-bold text-3xl mt-4 ${m.color}">${m.val.toFixed(4)}</h2>
+                    `;
+                    grid.appendChild(card);
+                });
+
+                // Generate SVG Chart points
+                // NDCG @5, @10, @20
+                const ndcgVals = [data['ndcg@5'], data['ndcg@10'], data['ndcg@20']];
+                // Recall @5, @10, @20
+                const recallVals = [data['recall@5'], data['recall@10'], data['recall@20']];
+
+                // Coordinates mapping: viewBox of SVG is 0 0 500 200
+                // X mapping: K=5 -> 50, K=10 -> 250, K=20 -> 450
+                // Y mapping: NDCG ranges from 0 to 0.10 (scale NDCG * 1500 to yield pixels, flipped: 200 - value)
+                const ndcgPoints = [
+                    `50,${200 - (ndcgVals[0] * 1800)}`,
+                    `250,${200 - (ndcgVals[1] * 1800)}`,
+                    `450,${200 - (ndcgVals[2] * 1800)}`
+                ];
+                document.getElementById('ndcg-line').setAttribute('d', `M ${ndcgPoints.join(' L ')}`);
+
+                // Recall ranges from 0 to 0.15 (scale Recall * 1100)
+                const recallPoints = [
+                    `50,${200 - (recallVals[0] * 1100)}`,
+                    `250,${200 - (recallVals[1] * 1100)}`,
+                    `450,${200 - (recallVals[2] * 1100)}`
+                ];
+                document.getElementById('recall-line').setAttribute('d', `M ${recallPoints.join(' L ')}`);
+
+                lucide.createIcons();
+            } catch(e) {
+                console.error("Error loading metrics", e);
+            }
+        }
+
+        // Fetch and load configurations
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/config');
+                const data = await res.json();
+                
+                const container = document.getElementById('config-cards-container');
+                container.innerHTML = '';
+
+                // Group configs into categories
+                const groups = {
+                    'Data Loader Layer': {
+                        'K-Core Core Threshold': data.k_core,
+                        'Adaptive Shrink': data.adaptive_k_core ? 'Active' : 'Disabled',
+                        'Validation Test Split': `${data.test_split * 100}%`,
+                        'Min Interactions / User': data.min_train_interactions
+                    },
+                    'Embedding Transformer (BAAI)': {
+                        'Latent Dimensions': data.embedding_dim,
+                        'Base HuggingFace Model': data.embedding_model,
+                        'Inference Batch Size': data.embedding_batch_size
+                    },
+                    'Collaborative Filtering': {
+                        'Models Evaluated': data.cf_models.join(', ').toUpperCase(),
+                        'Latent Dimensions': data.cf_factors,
+                        'Training Iterations': data.cf_iterations,
+                        'Implicit Alpha Weight': data.cf_alpha
+                    },
+                    'Graph Neural Net (LightGCN)': {
+                        'State Status': data.use_lightgcn ? 'Active' : 'Bypassed',
+                        'Hidden Embedding Size': data.gcn_dim,
+                        'Layer Dimensions': data.gcn_layers,
+                        'Epoch Training Length': data.gcn_epochs
+                    },
+                    'Sequence Model (SASRec)': {
+                        'State Status': data.use_sasrec ? 'Active' : 'Bypassed',
+                        'Hidden Layer Dimension': data.sas_dim,
+                        'Attention Heads': data.sas_heads,
+                        'Feedforward Layers': data.sas_layers,
+                        'Max History Sequence': data.sas_maxlen
+                    },
+                    'Vector Indexing (FAISS)': {
+                        'HNSW Quantizer M': data.faiss_m,
+                        'EF Construction Size': data.faiss_ef_construction,
+                        'EF Search Lookahead': data.faiss_ef_search,
+                        'Retrieval Candidate Pool': data.candidate_pool_size
+                    }
+                };
+
+                for(const [gname, items] of Object.entries(groups)) {
+                    const card = document.createElement('div');
+                    card.className = "cyber-card p-6 flex flex-col justify-between bg-surface";
+                    
+                    let innerHTML = `
+                        <div>
+                            <h3 class="font-display font-semibold text-lg text-white mb-4 border-b border-white/5 pb-2">${gname}</h3>
+                            <div class="space-y-3 font-mono text-xs">
+                    `;
+
+                    for(const [k, v] of Object.entries(items)) {
+                        innerHTML += `
+                            <div class="flex justify-between items-center py-1">
+                                <span class="text-white/40">${k}</span>
+                                <span class="text-white font-bold text-right pl-2">${v}</span>
+                            </div>
+                        `;
+                    }
+
+                    innerHTML += `
+                            </div>
+                        </div>
+                    `;
+                    card.innerHTML = innerHTML;
+                    container.appendChild(card);
+                }
+            } catch(e) {
+                console.error("Error loading config", e);
+            }
+        }
+
+        // Initialize application data
+        window.addEventListener('DOMContentLoaded', () => {
+            loadUsers();
+            loadMetrics();
+            loadConfig();
+            lucide.createIcons();
+        });
+    </script>
+
+    <!-- AI CHATBOT INTERFACE -->
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <!-- Chat window container (initially hidden) -->
+        <div id="ai-chat-window" class="hidden w-[380px] max-h-[580px] h-[580px] flex flex-col cyber-card p-6 bg-primary/95 backdrop-blur-xl border border-white/10 rounded-[2.5rem] shadow-2xl mb-4 transform translate-y-4 opacity-0 transition-all duration-300">
+            <!-- Header -->
+            <div class="flex justify-between items-center pb-4 border-b border-white/10">
+                <div class="flex items-center space-x-3">
+                    <div class="relative">
+                        <div class="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center border border-accent/30">
+                            <i data-lucide="sparkles" class="w-4 h-4 text-accent animate-pulse"></i>
+                        </div>
+                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-primary animate-pulse"></span>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-white leading-none">AI Assistant</h4>
+                        <span class="text-[9px] font-mono text-emerald-400 uppercase tracking-wider">Local Python Engine</span>
+                    </div>
+                </div>
+                <button onclick="toggleChat()" class="text-white/40 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Messages area -->
+            <div id="chat-messages" class="flex-grow overflow-y-auto py-4 space-y-4 pr-1 scrollbar-thin scrollbar-thumb-white/10">
+                <!-- Welcome Message -->
+                <div class="flex space-x-3">
+                    <div class="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 border border-accent/20">
+                        <i data-lucide="bot" class="w-3.5 h-3.5 text-accent"></i>
+                    </div>
+                    <div class="bg-white/5 rounded-2xl rounded-tl-none p-3 max-w-[85%] border border-white/5">
+                        <p class="text-xs text-white/80 leading-relaxed">
+                            Hello! I am your offline AI Assistant. I run local Python computations to inspect your personalized purchase history, taste profiles, similar user trends, and recommendation matches.
+                        </p>
+                        <div class="mt-3 flex flex-col space-y-1.5">
+                            <button onclick="sendQuickAction('What is my taste profile?')" class="text-[10px] text-left bg-accent/10 border border-accent/20 hover:bg-accent/25 text-accent px-2.5 py-1.5 rounded-xl transition-all flex items-center space-x-1.5">
+                                <i data-lucide="compass" class="w-3 h-3"></i>
+                                <span>What is my taste profile?</span>
+                            </button>
+                            <button onclick="sendQuickAction('What did I purchase last month?')" class="text-[10px] text-left bg-accent/10 border border-accent/20 hover:bg-accent/25 text-accent px-2.5 py-1.5 rounded-xl transition-all flex items-center space-x-1.5">
+                                <i data-lucide="shopping-bag" class="w-3 h-3"></i>
+                                <span>What did I purchase last month?</span>
+                            </button>
+                            <button onclick="sendQuickAction('What are users like me buying?')" class="text-[10px] text-left bg-accent/10 border border-accent/20 hover:bg-accent/25 text-accent px-2.5 py-1.5 rounded-xl transition-all flex items-center space-x-1.5">
+                                <i data-lucide="users" class="w-3 h-3"></i>
+                                <span>What are users like me buying?</span>
+                            </button>
+                            <button onclick="sendQuickAction('What matches my taste?')" class="text-[10px] text-left bg-accent/10 border border-accent/20 hover:bg-accent/25 text-accent px-2.5 py-1.5 rounded-xl transition-all flex items-center space-x-1.5">
+                                <i data-lucide="sparkles" class="w-3 h-3"></i>
+                                <span>What matches my taste?</span>
+                            </button>
+                            <button onclick="sendQuickAction('Explain current recommendations')" class="text-[10px] text-left bg-accent/10 border border-accent/20 hover:bg-accent/25 text-accent px-2.5 py-1.5 rounded-xl transition-all flex items-center space-x-1.5">
+                                <i data-lucide="info" class="w-3 h-3"></i>
+                                <span>Explain current recommendations</span>
+                            </button>
+                            <button onclick="sendQuickAction('What is the most popular product?')" class="text-[10px] text-left bg-accent/10 border border-accent/20 hover:bg-accent/25 text-accent px-2.5 py-1.5 rounded-xl transition-all flex items-center space-x-1.5">
+                                <i data-lucide="award" class="w-3 h-3"></i>
+                                <span>What is the most popular product?</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Typing indicator (hidden by default) -->
+            <div id="chat-typing" class="hidden flex items-center space-x-2 px-3 py-1 mb-2">
+                <span class="text-[10px] font-mono text-white/30">AI is analyzing</span>
+                <div class="flex space-x-1">
+                    <div class="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                    <div class="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                    <div class="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                </div>
+            </div>
+
+            <!-- Input form -->
+            <div class="flex items-center space-x-2 pt-3 border-t border-white/10">
+                <input type="text" id="chat-input" placeholder="Ask local assistant..." onkeydown="handleChatKey(event)" class="flex-grow bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-accent/40 transition-colors">
+                <button onclick="sendChatMessage()" class="w-9 h-9 rounded-xl bg-accent hover:bg-accent/80 flex items-center justify-center text-white shadow-lg transition-all transform hover:scale-105 active:scale-95">
+                    <i data-lucide="send" class="w-4 h-4 fill-white"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Floating Chat Icon Button -->
+        <button id="ai-chat-btn" onclick="toggleChat()" class="w-14 h-14 rounded-full bg-accent hover:bg-accent/90 flex items-center justify-center text-white shadow-[0_8px_32px_rgba(230,95,43,0.4)] border border-accent/20 transition-all transform hover:scale-110 active:scale-95 cursor-pointer relative overflow-hidden group">
+            <span class="absolute inset-0 bg-white/15 scale-y-0 group-hover:scale-y-100 origin-bottom transition-transform duration-300"></span>
+            <i data-lucide="message-square-text" class="w-6 h-6 relative z-10 transition-transform group-hover:rotate-6"></i>
+        </button>
+    </div>
+
+    <script>
+        let chatOpen = false;
+
+        function toggleChat() {
+            const windowEl = document.getElementById('ai-chat-window');
+            chatOpen = !chatOpen;
+            
+            if (chatOpen) {
+                windowEl.classList.remove('hidden');
+                setTimeout(() => {
+                    windowEl.classList.remove('opacity-0', 'translate-y-4');
+                }, 50);
+            } else {
+                windowEl.classList.add('opacity-0', 'translate-y-4');
+                setTimeout(() => {
+                    windowEl.classList.add('hidden');
+                }, 300);
+            }
+        }
+
+        function appendMessage(sender, text, isHtml = false) {
+            const container = document.getElementById('chat-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex space-x-3 ${sender === 'user' ? 'justify-end' : ''}`;
+            
+            let iconHtml = '';
+            if (sender === 'assistant') {
+                iconHtml = `
+                    <div class="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 border border-accent/20">
+                        <i data-lucide="bot" class="w-3.5 h-3.5 text-accent"></i>
+                    </div>
+                `;
+            }
+
+            const bubbleClass = sender === 'user' 
+                ? 'bg-accent/20 text-white rounded-2xl rounded-tr-none border border-accent/20' 
+                : 'bg-white/5 text-white/80 rounded-2xl rounded-tl-none border border-white/5';
+
+            msgDiv.innerHTML = `
+                ${sender !== 'user' ? iconHtml : ''}
+                <div class="${bubbleClass} p-3 max-w-[85%] text-xs leading-relaxed">
+                    ${isHtml ? text : escapeHtml(text)}
+                </div>
+            `;
+
+            container.appendChild(msgDiv);
+            lucide.createIcons();
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        function handleChatKey(e) {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        function sendQuickAction(action) {
+            appendMessage('user', action);
+            triggerChatBackend(action);
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            input.value = '';
+            appendMessage('user', text);
+            triggerChatBackend(text);
+        }
+
+        async function triggerChatBackend(message) {
+            const typingEl = document.getElementById('chat-typing');
+            typingEl.classList.remove('hidden');
+            
+            const activeUser = document.getElementById('custom-user-input').value || '';
+            const topK = document.getElementById('top-k-slider').value || 10;
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, user_id: activeUser, top_k: parseInt(topK) })
+                });
+                
+                const data = await response.json();
+                typingEl.classList.add('hidden');
+                
+                if (data.reply) {
+                    appendMessage('assistant', data.reply, true);
+                } else {
+                    appendMessage('assistant', 'Sorry, I encountered an issue processing that query.');
+                }
+            } catch (e) {
+                typingEl.classList.add('hidden');
+                console.error("Chat error", e);
+                appendMessage('assistant', 'Could not reach local Python server.');
+            }
+        }
+    </script>
+</body>
+</html>

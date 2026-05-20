@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans selection:bg-accent selection:text-white;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
+  }
+}
+
+@layer utilities {
+  .text-drama {
+    @apply font-drama italic tracking-tight;
+  }
+  .magnetic-button {
+    @apply relative overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)];
+  }
+  .magnetic-button:hover {
+    @apply scale-[1.03] -translate-y-px;
+  }
+}
