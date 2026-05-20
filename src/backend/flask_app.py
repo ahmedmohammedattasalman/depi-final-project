@@ -71,10 +71,110 @@ def load_category_mapping():
 # Try to load custom categories on start
 load_category_mapping()
 
-@app.route("/")
-def home():
+metadata_cache = {}
+try:
+    cache_path = Path("data/item_metadata_cache.json")
+    if cache_path.exists():
+        with open(cache_path, "r", encoding="utf-8") as f:
+            metadata_cache = json.load(f)
+        logger.info(f"Loaded {len(metadata_cache)} item titles and images from cache.")
+except Exception as e:
+    logger.error(f"Error loading metadata cache: {e}")
+
+def get_product_meta(asin):
+    return metadata_cache.get(asin, {"title": f"Product {asin}", "image": None})
+
+@app.route("/admin")
+def admin_dashboard():
     """Renders the main dashboard template."""
     return render_template("index.html")
+
+
+@app.route("/")
+def store_home():
+    """Renders the real-world e-commerce home page."""
+    item_encoder = recsys.pipeline._artifacts["item_encoder"]
+    item_metadata = recsys.pipeline._artifacts.get("item_stats")
+    
+    trending = []
+    if item_metadata is not None:
+        top_popular = item_metadata.sort_values(by="trending_score", ascending=False).head(8)
+        for _, row in top_popular.iterrows():
+            prod_id = int(row["productID"])
+            try:
+                asin = str(item_encoder.inverse_transform([prod_id])[0])
+            except:
+                asin = f"ASIN_{prod_id}"
+            
+            meta = get_product_meta(asin)
+            trending.append({
+                "asin": asin,
+                "title": meta["title"],
+                "image": meta["image"],
+                "category": get_product_category(asin),
+                "avg_rating": float(row.get("avg_rating", 0.0)),
+                "review_count": int(row.get("review_count", 0)),
+                "price": round(29.99 + (int(row.get("review_count", 0)) % 100), 2)
+            })
+            
+    return render_template("store_home.html", trending=trending)
+
+@app.route("/product/<asin>")
+def store_product(asin):
+    """Renders the product detail page."""
+    item_encoder = recsys.pipeline._artifacts["item_encoder"]
+    item_metadata = recsys.pipeline._artifacts.get("item_stats")
+    
+    try:
+        prod_id = item_encoder.transform([asin])[0]
+    except Exception:
+        # Product not found in encoder
+        return "Product Not Found", 404
+        
+    meta = get_product_meta(asin)
+    product = {
+        "asin": asin,
+        "title": meta["title"],
+        "image": meta["image"],
+        "category": get_product_category(asin),
+        "avg_rating": 4.5,
+        "review_count": 0,
+        "popularity_score": 0.5,
+        "trending_score": 0.5
+    }
+    
+    if item_metadata is not None and prod_id in item_metadata["productID"].values:
+        row = item_metadata[item_metadata["productID"] == prod_id].iloc[0]
+        product.update({
+            "avg_rating": float(row.get("avg_rating", 4.5)),
+            "review_count": int(row.get("review_count", 0)),
+            "popularity_score": float(row.get("popularity_score", 0.0)),
+            "trending_score": float(row.get("trending_score", 0.0))
+        })
+        
+    # Get similar products (fallback to trending if no similarity model)
+    similar = []
+    if item_metadata is not None:
+        # Just grab random popular items for similar in this demo if we can't do FAISS lookup easily
+        top_popular = item_metadata.sample(4) if len(item_metadata) > 4 else item_metadata
+        for _, row in top_popular.iterrows():
+            sim_id = int(row["productID"])
+            if sim_id == prod_id: continue
+            try:
+                sim_asin = str(item_encoder.inverse_transform([sim_id])[0])
+                sim_meta = get_product_meta(sim_asin)
+                similar.append({
+                    "asin": sim_asin,
+                    "title": sim_meta["title"],
+                    "image": sim_meta["image"],
+                    "category": get_product_category(sim_asin),
+                    "avg_rating": float(row.get("avg_rating", 0.0)),
+                    "review_count": int(row.get("review_count", 0))
+                })
+            except:
+                pass
+                
+    return render_template("store_product.html", product=product, similar=similar[:4])
 
 @app.after_request
 def add_header(response):
@@ -211,6 +311,8 @@ def get_recommendations():
                     "popularity_score": float(row.get("popularity_score", 0.0)),
                     "trending_score": float(row.get("trending_score", 0.0)),
                     "category": get_product_category(asin),
+                    "title": get_product_meta(asin)["title"],
+                    "image": get_product_meta(asin)["image"],
                     "cold_start": True
                 })
         else:
@@ -255,6 +357,8 @@ def get_recommendations():
                     "popularity_score": meta_record["popularity_score"],
                     "trending_score": meta_record["trending_score"],
                     "category": get_product_category(asin),
+                    "title": get_product_meta(asin)["title"],
+                    "image": get_product_meta(asin)["image"],
                     "cold_start": bool(rec.get("cold_start", False))
                 })
             

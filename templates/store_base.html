@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Aura Electronics{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#f0fdfa', 100: '#ccfbf1', 400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 900: '#134e4a', 950: '#042f2e' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #020617; /* Slate 950 */
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+        .glass-nav {
+            background: rgba(2, 6, 23, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(45, 212, 191, 0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px -10px rgba(45, 212, 191, 0.15);
+        }
+        .text-gradient {
+            background: linear-gradient(135deg, #2dd4bf, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .img-placeholder {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 glass-nav transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logo -->
+                <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer" onclick="window.location.href='/'">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-blue-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                        <i class="fa-solid fa-bolt text-white text-xl"></i>
+                    </div>
+                    <span class="font-bold text-2xl tracking-tight">Aura<span class="text-brand-400">Tech</span></span>
+                </div>
+
+                <!-- Search (Mock) -->
+                <div class="hidden md:flex flex-1 max-w-lg mx-8">
+                    <div class="relative w-full group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-brand-400 transition-colors">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </div>
+                        <input type="text" class="block w-full pl-11 pr-4 py-2.5 bg-slate-900/50 border border-slate-700/50 rounded-2xl leading-5 text-slate-300 placeholder-slate-500 focus:outline-none focus:bg-slate-900 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 transition-all sm:text-sm" placeholder="Search for electronics, laptops, cameras...">
+                    </div>
+                </div>
+
+                <!-- Right Nav -->
+                <div class="flex items-center gap-6">
+                    <a href="/admin" class="text-sm font-medium text-slate-400 hover:text-white transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line"></i> Admin
+                    </a>
+                    
+                    <div class="relative group">
+                        <button class="flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                            <img src="https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff" alt="User" class="w-8 h-8 rounded-full border border-slate-600">
+                            <span id="current-user-display">Sign In</span>
+                            <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </button>
+                        <!-- User Dropdown (simulated login) -->
+                        <div class="absolute right-0 mt-2 w-56 rounded-xl bg-slate-800 border border-slate-700 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                            <div class="p-3 border-b border-slate-700">
+                                <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Simulate User Login</p>
+                                <select id="user-selector" class="w-full bg-slate-900 border border-slate-600 rounded-lg py-1.5 px-2 text-sm text-white focus:outline-none focus:border-brand-500">
+                                    <option value="">Select User...</option>
+                                    <option value="AZ199">New User (Cold Start)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="relative p-2 text-slate-300 hover:text-brand-400 transition-colors">
+                        <i class="fa-solid fa-cart-shopping text-lg"></i>
+                        <span class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-brand-500 rounded-full">2</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow pt-24 pb-12">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 bg-slate-900/50 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-bolt text-brand-400"></i>
+                    <span class="font-semibold text-lg">AuraTech</span>
+                </div>
+                <p class="text-slate-500 text-sm">Powered by Advanced Deep Learning Recommendations.</p>
+                <div class="flex gap-4 text-slate-400">
+                    <a href="#" class="hover:text-brand-400 transition-colors"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="#" class="hover:text-brand-400 transition-colors"><i class="fa-brands fa-github"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Store selected user in localStorage to persist across pages
+        document.addEventListener('DOMContentLoaded', () => {
+            const userSelector = document.getElementById('user-selector');
+            const userDisplay = document.getElementById('current-user-display');
+            
+            // Fetch users for dropdown
+            fetch('/api/users')
+                .then(res => res.json())
+                .then(data => {
+                    const topUsers = data.users.slice(0, 10);
+                    topUsers.forEach(u => {
+                        const opt = document.createElement('option');
+                        opt.value = u.id;
+                        opt.textContent = `User ${u.id.substring(0,6)}... (${u.activity} reviews)`;
+                        userSelector.appendChild(opt);
+                    });
+                    
+                    // Set saved user
+                    const savedUser = localStorage.getItem('aura_user');
+                    if (savedUser) {
+                        userSelector.value = savedUser;
+                        userDisplay.textContent = `User: ${savedUser.substring(0,5)}`;
+                    }
+                });
+
+            userSelector.addEventListener('change', (e) => {
+                const uid = e.target.value;
+                if (uid) {
+                    localStorage.setItem('aura_user', uid);
+                    window.location.reload();
+                } else {
+                    localStorage.removeItem('aura_user');
+                    window.location.reload();
+                }
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

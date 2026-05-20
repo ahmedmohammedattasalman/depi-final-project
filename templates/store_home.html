@@ -1,0 +1,174 @@
+{% extends "store_base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <!-- Hero Banner -->
+    <div class="relative rounded-3xl overflow-hidden mb-12 shadow-2xl shadow-brand-500/10 group">
+        <div class="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/80 to-transparent z-10"></div>
+        <img src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=1200&q=80" alt="Hero Electronics" class="w-full h-80 object-cover transform group-hover:scale-105 transition-transform duration-700">
+        <div class="absolute inset-0 z-20 flex flex-col justify-center px-12 md:w-2/3">
+            <span class="inline-block py-1 px-3 rounded-full bg-brand-500/20 text-brand-400 text-xs font-bold tracking-wider mb-4 border border-brand-500/30 w-max">NEW ARRIVALS</span>
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">Next-Gen Tech <br>For Your Lifestyle</h1>
+            <p class="text-slate-300 text-lg mb-8 max-w-md">Discover our curated collection of premium electronics, tailored just for you using advanced AI.</p>
+            <button class="bg-gradient-to-r from-brand-500 to-blue-500 hover:from-brand-400 hover:to-blue-400 text-white font-semibold py-3 px-8 rounded-xl shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-1 w-max">
+                Shop Now
+            </button>
+        </div>
+    </div>
+
+    <!-- Personalized Recommendations Container -->
+    <div id="recommendations-section" class="mb-16 hidden">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-sparkles text-brand-400"></i>
+                Recommended for You
+            </h2>
+            <button class="text-brand-400 text-sm font-medium hover:text-brand-300 transition-colors">View All <i class="fa-solid fa-arrow-right ml-1"></i></button>
+        </div>
+        <div id="recommendations-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Populated via JS -->
+        </div>
+    </div>
+
+    <!-- Trending Products -->
+    <div class="mb-16">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-fire text-orange-500"></i>
+                Trending Right Now
+            </h2>
+        </div>
+        <div id="trending-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Populated via JS -->
+            {% for item in trending %}
+            <div class="glass-card rounded-2xl overflow-hidden group cursor-pointer flex flex-col" onclick="window.location.href='/product/{{ item.asin }}'">
+                <div class="relative h-48 overflow-hidden bg-slate-800">
+                    <img src="{{ item.image if item.image else 'https://images.unsplash.com/photo-1523206489230-c012c64b2b48?auto=format&fit=crop&w=400&q=80' }}" 
+                         alt="{{ item.category }}" 
+                         class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100"
+                         onerror="this.src='https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=400&q=80'">
+                    <div class="absolute top-3 left-3">
+                        <span class="bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-md border border-white/10 uppercase tracking-wide">
+                            {{ item.category }}
+                        </span>
+                    </div>
+                </div>
+                <div class="p-5 flex flex-col flex-grow">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-semibold text-lg text-slate-100 line-clamp-2" title="{{ item.title }}">{{ item.title }}</h3>
+                    </div>
+                    <div class="flex items-center gap-1 text-amber-400 text-sm mb-4">
+                        <i class="fa-solid fa-star"></i>
+                        <span class="font-medium text-slate-200">{{ "%.1f"|format(item.avg_rating) }}</span>
+                        <span class="text-slate-500 text-xs ml-1">({{ item.review_count }})</span>
+                    </div>
+                    <div class="mt-auto flex items-center justify-between">
+                        <span class="text-xl font-bold text-white">$<span class="text-brand-400">{{ (29.99 + (item.review_count % 100))|round(2) }}</span></span>
+                        <button class="w-8 h-8 rounded-full bg-slate-700/50 flex items-center justify-center text-slate-300 group-hover:bg-brand-500 group-hover:text-white transition-colors">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Keyword map for Unsplash images based on category
+    const imgKeywords = {
+        'Headphones': 'headphones',
+        'Laptops': 'laptop',
+        'Cameras': 'camera,lens',
+        'Phones': 'smartphone',
+        'Accessories': 'usb,cable',
+        'Wearables': 'smartwatch',
+        'Tablets': 'tablet',
+        'default': 'electronics,gadget'
+    };
+
+    function getUnsplashUrl(category, seed) {
+        let keyword = imgKeywords.default;
+        for (const [key, val] of Object.entries(imgKeywords)) {
+            if (category && category.toLowerCase().includes(key.toLowerCase())) {
+                keyword = val;
+                break;
+            }
+        }
+        // Use deterministic random images based on ASIN seed to keep them consistent
+        return `https://source.unsplash.com/random/400x300/?${keyword}&sig=${seed}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const uid = localStorage.getItem('aura_user');
+        if (uid) {
+            document.getElementById('recommendations-section').classList.remove('hidden');
+            
+            // Show loading skeleton
+            const grid = document.getElementById('recommendations-grid');
+            grid.innerHTML = Array(4).fill(0).map(() => `
+                <div class="glass-card rounded-2xl p-4 animate-pulse">
+                    <div class="bg-slate-700/50 h-40 rounded-xl mb-4"></div>
+                    <div class="bg-slate-700/50 h-4 w-3/4 rounded mb-2"></div>
+                    <div class="bg-slate-700/50 h-4 w-1/2 rounded mb-4"></div>
+                    <div class="bg-slate-700/50 h-8 w-full rounded"></div>
+                </div>
+            `).join('');
+
+            // Fetch real recommendations
+            fetch('/api/recommend', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: uid, top_k: 4 })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) throw new Error(data.error);
+                    
+                    if (data.recommendations && data.recommendations.length > 0) {
+                        grid.innerHTML = data.recommendations.slice(0, 4).map(item => `
+                            <div class="glass-card rounded-2xl overflow-hidden group cursor-pointer flex flex-col" onclick="window.location.href='/product/${item.asin}'">
+                                <div class="relative h-48 overflow-hidden bg-slate-800">
+                                    <img src="${item.image ? item.image : 'https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=400&q=80'}" 
+                                         alt="${item.category}" 
+                                         onerror="this.src='https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=400&q=80'"
+                                         class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100">
+                                    <div class="absolute top-3 left-3">
+                                        <span class="bg-gradient-to-r from-brand-500 to-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-lg uppercase tracking-wide">
+                                            Recommended
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="p-5 flex flex-col flex-grow">
+                                    <div class="flex justify-between items-start mb-1 h-14">
+                                        <h3 class="font-semibold text-sm text-slate-100 line-clamp-2" title="${item.title}">${item.title}</h3>
+                                    </div>
+                                    <p class="text-xs text-brand-400 mb-3 uppercase tracking-wider font-semibold">${item.category}</p>
+                                    <div class="flex items-center gap-1 text-amber-400 text-sm mb-4">
+                                        <i class="fa-solid fa-star"></i>
+                                        <span class="font-medium text-slate-200">${item.avg_rating.toFixed(1)}</span>
+                                    </div>
+                                    <div class="mt-auto flex items-center justify-between">
+                                        <span class="text-xl font-bold text-white">$<span class="text-brand-400">${(29.99 + (item.review_count % 100)).toFixed(2)}</span></span>
+                                        <button class="w-8 h-8 rounded-full bg-slate-700/50 flex items-center justify-center text-slate-300 group-hover:bg-brand-500 group-hover:text-white transition-colors">
+                                            <i class="fa-solid fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        grid.innerHTML = `<div class="col-span-full p-6 text-center text-slate-400">No personalized recommendations available yet.</div>`;
+                    }
+                })
+                .catch(err => {
+                    grid.innerHTML = `<div class="col-span-full p-6 text-center text-red-400">Failed to load recommendations.</div>`;
+                });
+        }
+    });
+</script>
+{% endblock %}

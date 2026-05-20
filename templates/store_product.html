@@ -1,0 +1,110 @@
+{% extends "store_base.html" %}
+
+{% block title %}Aura Electronics - {{ product.asin }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <div class="mb-6 flex items-center text-sm text-slate-400 gap-2">
+        <a href="/" class="hover:text-brand-400 transition-colors">Home</a>
+        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+        <a href="#" class="hover:text-brand-400 transition-colors">{{ product.category }}</a>
+        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+        <span class="text-slate-200">{{ product.asin }}</span>
+    </div>
+
+    <!-- Product Main -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-12 mb-16">
+        <!-- Image -->
+        <div class="rounded-3xl overflow-hidden glass-card p-2 flex items-center justify-center h-[500px] bg-white">
+            <img src="{{ product.image if product.image else 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80' }}" alt="{{ product.category }}" class="max-w-full max-h-full object-contain rounded-2xl">
+        </div>
+
+        <!-- Details -->
+        <div class="flex flex-col justify-center">
+            <span class="inline-block py-1 px-3 rounded-md bg-slate-800 text-brand-400 text-xs font-bold tracking-wider mb-4 border border-brand-500/20 w-max uppercase">{{ product.category }}</span>
+            <h1 class="text-2xl sm:text-3xl font-bold text-white mb-4 line-clamp-3">{{ product.title }}</h1>
+            
+            <div class="flex items-center gap-4 mb-6">
+                <div class="flex items-center gap-1 text-amber-400 text-lg">
+                    {% for i in range(5) %}
+                        {% if i < product.avg_rating|int %}
+                            <i class="fa-solid fa-star"></i>
+                        {% else %}
+                            <i class="fa-regular fa-star"></i>
+                        {% endif %}
+                    {% endfor %}
+                    <span class="font-bold text-white ml-2">{{ "%.1f"|format(product.avg_rating) }}</span>
+                </div>
+                <div class="h-4 w-px bg-slate-700"></div>
+                <span class="text-slate-400 text-sm hover:text-brand-400 cursor-pointer transition-colors">{{ product.review_count }} Reviews</span>
+            </div>
+
+            <div class="text-4xl font-bold text-white mb-8">$<span class="text-brand-400">{{ (49.99 + (product.review_count % 200))|round(2) }}</span></div>
+
+            <p class="text-slate-400 mb-8 leading-relaxed">
+                Experience next-generation technology with this high-performance {{ product.category|lower }}. Built with precision engineering and advanced materials, it delivers unparalleled reliability and cutting-edge features. Perfect for enthusiasts and professionals alike.
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button class="flex-1 bg-gradient-to-r from-brand-500 to-blue-500 hover:from-brand-400 hover:to-blue-400 text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-cart-shopping"></i> Add to Cart
+                </button>
+                <button class="w-full sm:w-16 h-14 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 text-slate-300 transition-all flex items-center justify-center group">
+                    <i class="fa-regular fa-heart text-xl group-hover:text-red-400 transition-colors"></i>
+                </button>
+            </div>
+
+            <!-- Meta stats -->
+            <div class="mt-8 grid grid-cols-2 gap-4 border-t border-slate-800 pt-6">
+                <div>
+                    <p class="text-slate-500 text-xs mb-1">Popularity Rank</p>
+                    <p class="text-white font-medium">Top {{ ((1.0 - product.popularity_score) * 100)|round|int }}% in store</p>
+                </div>
+                <div>
+                    <p class="text-slate-500 text-xs mb-1">Trending Score</p>
+                    <div class="w-full bg-slate-800 rounded-full h-1.5 mt-2">
+                        <div class="bg-gradient-to-r from-orange-500 to-red-500 h-1.5 rounded-full" style="width: {{ (product.trending_score * 100)|round }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Similar Products -->
+    {% if similar %}
+    <div class="mb-16 border-t border-slate-800 pt-12">
+        <div class="flex items-center justify-between mb-8">
+            <h2 class="text-2xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-blue-400"></i>
+                Similar Products You May Like
+            </h2>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {% for item in similar %}
+            <div class="glass-card rounded-2xl overflow-hidden group cursor-pointer flex flex-col" onclick="window.location.href='/product/{{ item.asin }}'">
+                <div class="relative h-48 overflow-hidden bg-white">
+                    <img src="{{ item.image if item.image else 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?auto=format&fit=crop&w=400&q=80' }}" 
+                         alt="{{ item.category }}" 
+                         class="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-500">
+                </div>
+                <div class="p-5 flex flex-col flex-grow">
+                    <div class="flex justify-between items-start mb-2 h-10">
+                        <h3 class="font-semibold text-sm text-slate-100 line-clamp-2" title="{{ item.title }}">{{ item.title }}</h3>
+                    </div>
+                    <div class="flex items-center gap-1 text-amber-400 text-sm mb-4">
+                        <i class="fa-solid fa-star"></i>
+                        <span class="font-medium text-slate-200">{{ "%.1f"|format(item.avg_rating) }}</span>
+                    </div>
+                    <div class="mt-auto flex items-center justify-between">
+                        <span class="text-xl font-bold text-white">$<span class="text-brand-400">{{ (29.99 + (item.review_count % 100))|round(2) }}</span></span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
