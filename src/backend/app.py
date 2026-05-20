@@ -1,10 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict
-from inference import RecSysInference
+from src.models.inference import RecSysInference
 
 app = FastAPI(title='Amazon RecSys API')
-model = RecSysInference()
+model = RecSysInference(model_dir="data")
 
 class RecRequest(BaseModel):
     user_id: str

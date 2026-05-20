@@ -40,34 +40,45 @@ Here is a guide to what each file and folder does in this repository:
 ```bash
 deploy_bundle/
 │
-├── flask_app.py               # The main Flask backend server. Handles routing and chatbot computations.
-├── pipeline.py                # Definition of the multi-model RecSys pipeline structures & ranking.
-├── inference.py               # RecSysInference helper for loading models, encoder mapping, and recommending.
+├── run.py                     # Entrypoint script to launch the recommendation server.
 │
-├── templates/
-│   └── index.html             # The frontend dashboard interface (HTML5, Tailwind CSS, Lucide icons, JS).
+├── config/
+│   └── config.json            # Model parameters (factor sizes, layer sizes, and FAISS options).
 │
-├── venv/                      # Python virtual environment containing libraries and dependencies.
-│
-├── requirements.txt           # File containing lists of required python packages.
-│
-├── Data Assets (Pre-trained & Pre-computed):
+├── data/
 │   ├── cf_model.pkl           # Trained implicit ALS/BPR model weights.
 │   ├── product_vectors.npy    # Serialized item latent factor embeddings.
 │   ├── faiss.index            # FAISS index loaded into RAM for vector searches.
 │   ├── artifacts.pkl          # Pickled pipeline metadata, user/item encoders, and parameters.
-│   ├── config.json            # Model parameters (factor sizes, layer sizes, and FAISS options).
 │   ├── metrics_v5.json        # Pre-calculated test evaluation performance metrics.
 │   ├── item_mapping.pkl       # Map dictionary converting product IDs to original Amazon ASINs.
 │   ├── user_mapping.pkl       # Map dictionary converting user indices to original User IDs.
 │   ├── item_metadata.parquet  # Parquet data sheet detailing item average ratings and review counts.
-│   └── item_categories.json   # 490k+ item-to-category dictionary mappings extracted from Amazon datasets.
+│   └── item_categories.json   # 490k+ item-to-category dictionary mappings.
 │
-└── Developer/Scratch Scripts:
-    ├── app.py                 # Alternate entry point script.
-    ├── preprocess.py          # Initial data cleaning script.
-    ├── extract_categories.py  # Utility to parse category names from raw datasets.
-    └── read.ipynb             # Jupyter Notebook for inspecting pickle weights.
+├── src/
+│   ├── features/
+│   │   ├── preprocess.py      # Initial data cleaning script.
+│   │   └── extract_categories.py # Utility to parse category names from raw datasets.
+│   │
+│   ├── models/
+│   │   ├── config.py          # Configuration settings class (V5Config).
+│   │   ├── data_layer.py      # Data ingestion & FeatureEngineeringLayer.
+│   │   ├── components.py      # Model subcomponents (ALS/BPR, LightGCN, SASRec, FAISS, Popularity).
+│   │   ├── ranking.py         # CandidateGenerator, Ranker (LambdaMART LTR), PostProcessor.
+│   │   ├── service.py         # RecommendationService and Evaluator.
+│   │   ├── pipeline.py        # PipelineV5 coordinator & sub-module facade.
+│   │   └── inference.py       # RecSysInference helper for backend API endpoints.
+│   │
+│   └── backend/
+│       ├── flask_app.py       # Main Flask server code. Serves endpoints and chatbot logic.
+│       └── app.py             # FastAPI backend (alternative API framework).
+│
+├── templates/
+│   └── index.html             # The frontend dashboard UI template.
+│
+├── venv/                      # Python virtual environment containing libraries and dependencies.
+└── requirements.txt           # File containing lists of required python packages.
 ```
 
 ---
@@ -109,14 +120,15 @@ pip install flask
 ```
 
 ### 3. Launch the Server
-Start the Flask application backend. The server will construct the popularity metrics, load vectors, parse categories, and bind to port `8050`:
+Start the application backend via the main `run.py` script. The server will configure the model paths, load vectors, parse categories, and bind to port `8050`:
 
 ```powershell
-python flask_app.py
+python run.py
 ```
 
 Log outputs should indicate:
 ```text
+Starting Amazon Electronics Recommendation Dashboard...
 INFO:FlaskRecSys:Recommendation model initialized successfully!
 INFO:FlaskRecSys:Loaded 498196 custom categories from item_categories.json
  * Running on http://127.0.0.1:8050

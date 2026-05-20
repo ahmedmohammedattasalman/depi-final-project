@@ -6,22 +6,22 @@ from flask import Flask, jsonify, render_template, request
 import pandas as pd
 import numpy as np
 
-from inference import RecSysInference
+from src.models.inference import RecSysInference
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("FlaskRecSys")
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='../../templates')
 
 # Initialize Inference System
 logger.info("Initializing recommendation model (loading weights)...")
-recsys = RecSysInference(model_dir=".")
+recsys = RecSysInference(model_dir="data")
 logger.info("Recommendation model initialized successfully!")
 
 # Load configurations and metrics
-config_path = Path("config.json")
-metrics_path = Path("metrics_v5.json")
+config_path = Path("config/config.json")
+metrics_path = Path("data/metrics_v5.json")
 
 with open(config_path, "r", encoding="utf-8") as f:
     pipeline_config = json.load(f)
@@ -35,8 +35,8 @@ last_loaded_time = 0.0
 
 def load_category_mapping():
     global category_mapping, last_loaded_time
-    json_path = Path("item_categories.json")
-    csv_path = Path("item_categories.csv")
+    json_path = Path("data/item_categories.json")
+    csv_path = Path("data/item_categories.csv")
     
     mtime = 0.0
     target_path = None

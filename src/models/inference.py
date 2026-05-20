@@ -5,12 +5,12 @@ import pandas as pd
 import faiss
 import lightgbm as lgb
 from pathlib import Path
-from pipeline import PipelineV5, V5Config
+from .pipeline import PipelineV5, V5Config
 
 class RecSysInference:
     def __init__(self, model_dir='.'):
         self.model_dir = Path(model_dir)
-        self.config = V5Config.load(self.model_dir / 'config.json')
+        self.config = V5Config.load(self.model_dir.parent / 'config' / 'config.json')
         self.pipeline = PipelineV5(self.config)
 
         # 1. Load base artifacts (has n_users, n_items, user_stats, etc.)
@@ -64,7 +64,7 @@ class RecSysInference:
             return np.random.randn(self.pipeline.n_items, self.config.embedding_dim).astype('float32')
 
     def _rebuild_service(self):
-        from pipeline import CandidateGenerator, RecommendationService, PostProcessor
+        from .pipeline import CandidateGenerator, RecommendationService, PostProcessor
         cand_gen = CandidateGenerator(
             self.pipeline.cf_mod, self.pipeline.faiss_mod, self.pipeline.pop_mod,
             self.pipeline.gcn_mod, self.pipeline.sas_mod, self.config
